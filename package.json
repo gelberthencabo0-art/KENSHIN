@@ -1,0 +1,8 @@
+{
+  "name": "kenshin",
+  "version": "1.0.0",
+  "main": "index",
+  "script":{
+    "start": "node index.js"
+  }
+}

@@ -1,19 +1,26 @@
 const http = require("http");
+const fs = require("fs");
+const path = require("path");
 
 const PORT = process.env.PORT || 8080;
 const startTime = Date.now();
 
 // "image" is optional: paste a poster URL (https://...) and it will be used.
 // If it is empty or fails to load, the built-in artwork is shown instead.
+const POSTER_DIR = path.join(__dirname, "posters");
+const POSTER_TYPES = {
+  ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"
+};
+
 const movies = [
-  { id: 1, title: "Blade Runner 2049", genre: "Cyberpunk", year: 2017, description: "A blade runner uncovers a secret that could reshape society.", image: "", art: "skyline", c1: "#164e63", c2: "#312e81", accent: "#22d3ee" },
-  { id: 2, title: "The Matrix", genre: "Cyberpunk", year: 1999, description: "A hacker discovers the truth behind reality.", image: "", art: "matrix", c1: "#064e3b", c2: "#020617", accent: "#4ade80" },
-  { id: 3, title: "Ghost in the Shell", genre: "Cyberpunk", year: 1995, description: "A cybernetic agent investigates a digital criminal.", image: "", art: "skyline", c1: "#1e3a8a", c2: "#581c87", accent: "#f0abfc" },
-  { id: 4, title: "Dune: Part Two", genre: "Space Opera", year: 2024, description: "A young leader unites with the Fremen on a desert world.", image: "", art: "desert", c1: "#92400e", c2: "#111827", accent: "#fbbf24" },
-  { id: 5, title: "Interstellar", genre: "Space Opera", year: 2014, description: "Explorers travel beyond the solar system.", image: "", art: "wormhole", c1: "#1e40af", c2: "#020617", accent: "#7dd3fc" },
-  { id: 6, title: "The Fifth Element", genre: "Space Opera", year: 1997, description: "A team races to protect the universe.", image: "", art: "planet", c1: "#9a3412", c2: "#4c1d95", accent: "#fb923c" },
-  { id: 7, title: "Ready Player One", genre: "Cyberpunk", year: 2018, description: "A gamer enters a vast virtual world.", image: "", art: "skyline", c1: "#075985", c2: "#6b21a8", accent: "#e879f9" },
-  { id: 8, title: "Guardians of the Galaxy", genre: "Space Opera", year: 2014, description: "A group of heroes protects the galaxy.", image: "", art: "planet", c1: "#9f1239", c2: "#1d4ed8", accent: "#f472b6" }
+  { id: 1, title: "Blade Runner 2049", genre: "Cyberpunk", year: 2017, description: "A blade runner uncovers a secret that could reshape society.", image: "/posters/blade-runner-2049.jpg", art: "skyline", c1: "#164e63", c2: "#312e81", accent: "#22d3ee" },
+  { id: 2, title: "The Matrix", genre: "Cyberpunk", year: 1999, description: "A hacker discovers the truth behind reality.", image: "/posters/the-matrix.jpg", art: "matrix", c1: "#064e3b", c2: "#020617", accent: "#4ade80" },
+  { id: 3, title: "Ghost in the Shell", genre: "Cyberpunk", year: 1995, description: "A cybernetic agent investigates a digital criminal.", image: "/posters/ghost-in-the-shell.jpg", art: "skyline", c1: "#1e3a8a", c2: "#581c87", accent: "#f0abfc" },
+  { id: 4, title: "Dune: Part Two", genre: "Space Opera", year: 2024, description: "A young leader unites with the Fremen on a desert world.", image: "/posters/dune-part-two.jpg", art: "desert", c1: "#92400e", c2: "#111827", accent: "#fbbf24" },
+  { id: 5, title: "Interstellar", genre: "Space Opera", year: 2014, description: "Explorers travel beyond the solar system.", image: "/posters/interstellar.jpg", art: "wormhole", c1: "#1e40af", c2: "#020617", accent: "#7dd3fc" },
+  { id: 6, title: "The Fifth Element", genre: "Space Opera", year: 1997, description: "A team races to protect the universe.", image: "/posters/the-fifth-element.jpg", art: "planet", c1: "#9a3412", c2: "#4c1d95", accent: "#fb923c" },
+  { id: 7, title: "Ready Player One", genre: "Cyberpunk", year: 2018, description: "A gamer enters a vast virtual world.", image: "/posters/ready-player-one.jpg", art: "skyline", c1: "#075985", c2: "#6b21a8", accent: "#e879f9" },
+  { id: 8, title: "Guardians of the Galaxy", genre: "Space Opera", year: 2014, description: "A group of heroes protects the galaxy.", image: "/posters/guardians-of-the-galaxy.jpg", art: "planet", c1: "#9f1239", c2: "#1d4ed8", accent: "#f472b6" }
 ];
 
 const html = `<!DOCTYPE html>
@@ -348,6 +355,12 @@ button:hover {
   position: absolute;
   inset: 0;
   background: linear-gradient(to top, rgba(2,6,23,.85), rgba(2,6,23,0) 60%);
+}
+
+.card-thumb.has-poster::after,
+.card-thumb.has-poster .thumb-genre,
+.card-thumb.has-poster .thumb-title {
+  display: none;
 }
 
 .thumb-genre {
@@ -812,6 +825,12 @@ function makeThumb(movie) {
     img.alt = movie.title;
     img.loading = "lazy";
     img.referrerPolicy = "no-referrer";
+    img.addEventListener("load", function () {
+      if (img.naturalWidth > img.naturalHeight) {
+        img.style.objectFit = "contain";
+      }
+      thumb.classList.add("has-poster");
+    });
     img.addEventListener("error", function () {
       img.remove();
       showArt();
@@ -1219,6 +1238,26 @@ const server = http.createServer((req, res) => {
         (Date.now() - startTime) / 1000
       )
     }));
+  }
+
+  if (req.url.startsWith("/posters/")) {
+    const name = path.basename(decodeURIComponent(req.url.split("?")[0]));
+    const base = name.replace(/\.[^.]+$/, "");
+
+    for (const ext of [".jpg", ".jpeg", ".png", ".webp"]) {
+      const file = path.join(POSTER_DIR, base + ext);
+
+      if (fs.existsSync(file)) {
+        res.writeHead(200, {
+          "Content-Type": POSTER_TYPES[ext],
+          "Cache-Control": "public, max-age=86400"
+        });
+        return fs.createReadStream(file).pipe(res);
+      }
+    }
+
+    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    return res.end("Poster not found");
   }
 
   if (req.url === "/" || req.url.startsWith("/?")) {

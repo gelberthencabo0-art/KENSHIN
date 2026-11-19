@@ -292,5 +292,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(\`Kenshin Sci-Fi server running on port \${PORT}\`);
+  console.log("Kenshin Sci-Fi server running on port " + PORT);
 });

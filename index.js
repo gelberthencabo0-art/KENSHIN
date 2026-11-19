@@ -1,18 +1,19 @@
-
 const http = require("http");
 
 const PORT = process.env.PORT || 8080;
 const startTime = Date.now();
 
+// "image" is optional: paste a poster URL (https://...) and it will be used.
+// If it is empty or fails to load, the built-in artwork is shown instead.
 const movies = [
-  { id: 1, title: "Blade Runner 2049", genre: "Cyberpunk", year: 2017, description: "A blade runner uncovers a secret that could reshape society.", theme: "linear-gradient(135deg,#164e63,#312e81,#090d16)" },
-  { id: 2, title: "The Matrix", genre: "Cyberpunk", year: 1999, description: "A hacker discovers the truth behind reality.", theme: "linear-gradient(135deg,#064e3b,#052e16,#020617)" },
-  { id: 3, title: "Ghost in the Shell", genre: "Cyberpunk", year: 1995, description: "A cybernetic agent investigates a digital criminal.", theme: "linear-gradient(135deg,#1e3a8a,#581c87,#020617)" },
-  { id: 4, title: "Dune: Part Two", genre: "Space Opera", year: 2024, description: "A young leader unites with the Fremen on a desert world.", theme: "linear-gradient(135deg,#92400e,#713f12,#111827)" },
-  { id: 5, title: "Interstellar", genre: "Space Opera", year: 2014, description: "Explorers travel beyond the solar system.", theme: "linear-gradient(135deg,#1e40af,#312e81,#020617)" },
-  { id: 6, title: "The Fifth Element", genre: "Space Opera", year: 1997, description: "A team races to protect the universe.", theme: "linear-gradient(135deg,#9a3412,#7e22ce,#111827)" },
-  { id: 7, title: "Ready Player One", genre: "Cyberpunk", year: 2018, description: "A gamer enters a vast virtual world.", theme: "linear-gradient(135deg,#075985,#6b21a8,#111827)" },
-  { id: 8, title: "Guardians of the Galaxy", genre: "Space Opera", year: 2014, description: "A group of heroes protects the galaxy.", theme: "linear-gradient(135deg,#9f1239,#1d4ed8,#111827)" }
+  { id: 1, title: "Blade Runner 2049", genre: "Cyberpunk", year: 2017, description: "A blade runner uncovers a secret that could reshape society.", image: "", art: "skyline", c1: "#164e63", c2: "#312e81", accent: "#22d3ee" },
+  { id: 2, title: "The Matrix", genre: "Cyberpunk", year: 1999, description: "A hacker discovers the truth behind reality.", image: "", art: "matrix", c1: "#064e3b", c2: "#020617", accent: "#4ade80" },
+  { id: 3, title: "Ghost in the Shell", genre: "Cyberpunk", year: 1995, description: "A cybernetic agent investigates a digital criminal.", image: "", art: "skyline", c1: "#1e3a8a", c2: "#581c87", accent: "#f0abfc" },
+  { id: 4, title: "Dune: Part Two", genre: "Space Opera", year: 2024, description: "A young leader unites with the Fremen on a desert world.", image: "", art: "desert", c1: "#92400e", c2: "#111827", accent: "#fbbf24" },
+  { id: 5, title: "Interstellar", genre: "Space Opera", year: 2014, description: "Explorers travel beyond the solar system.", image: "", art: "wormhole", c1: "#1e40af", c2: "#020617", accent: "#7dd3fc" },
+  { id: 6, title: "The Fifth Element", genre: "Space Opera", year: 1997, description: "A team races to protect the universe.", image: "", art: "planet", c1: "#9a3412", c2: "#4c1d95", accent: "#fb923c" },
+  { id: 7, title: "Ready Player One", genre: "Cyberpunk", year: 2018, description: "A gamer enters a vast virtual world.", image: "", art: "skyline", c1: "#075985", c2: "#6b21a8", accent: "#e879f9" },
+  { id: 8, title: "Guardians of the Galaxy", genre: "Space Opera", year: 2014, description: "A group of heroes protects the galaxy.", image: "", art: "planet", c1: "#9f1239", c2: "#1d4ed8", accent: "#f472b6" }
 ];
 
 const html = `<!DOCTYPE html>
@@ -197,6 +198,37 @@ button:hover {
   justify-content: flex-end;
   padding: 28px;
   position: relative;
+  overflow: hidden;
+}
+
+.featured-art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.featured-art svg,
+.featured-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.featured-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(to top, rgba(2,6,23,.92) 5%, rgba(2,6,23,.35) 60%, rgba(2,6,23,.1));
+}
+
+.featured-banner h2,
+.featured-banner p,
+.featured-banner .tag,
+.featured-banner .featured-actions {
+  position: relative;
+  z-index: 2;
 }
 
 .featured-banner h2 {
@@ -212,6 +244,7 @@ button:hover {
 .trending-tag,
 .play-badge {
   position: absolute;
+  z-index: 2;
   top: 18px;
   padding: 5px 12px;
   border-radius: 999px;
@@ -284,16 +317,70 @@ button:hover {
 }
 
 .card-thumb {
-  height: 140px;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 2 / 3;
   border-radius: 10px;
   margin-bottom: 14px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  border: 1px solid rgba(255,255,255,.12);
   font-family: 'Orbitron', sans-serif;
   font-weight: 800;
   text-align: center;
-  padding: 10px;
+  background: #0b1221;
+}
+
+.card-thumb svg,
+.card-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.card-thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(2,6,23,.85), rgba(2,6,23,0) 60%);
+}
+
+.thumb-genre {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding: 12px 10px 0;
+  font-size: .65rem;
+  letter-spacing: 3px;
+  color: #e0f2fe;
+  opacity: .85;
+  text-shadow: 0 2px 6px rgba(0,0,0,.9);
+}
+
+.thumb-title {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding: 0 12px 16px;
+  font-size: 1.25rem;
+  line-height: 1.15;
+  letter-spacing: 2px;
+  text-shadow: 0 3px 12px rgba(0,0,0,.95);
+}
+
+.thumb-title::before {
+  content: "";
+  display: block;
+  width: 40px;
+  height: 2px;
+  margin: 0 auto 10px;
+  background: #00f0ff;
+  box-shadow: 0 0 8px #00f0ff;
 }
 
 .tag {
@@ -522,6 +609,7 @@ footer {
 
   <div class="featured-card">
     <div class="featured-banner">
+      <div class="featured-art" id="featured-art"></div>
       <span class="trending-tag">FEATURED TRANSMISSION</span>
       <span class="play-badge">▶ FEATURED</span>
       <span class="tag">SPACE OPERA • 2024</span>
@@ -533,7 +621,7 @@ footer {
         shaped by power, prophecy, and survival.
       </p>
 
-      <div style="margin-top:18px">
+      <div class="featured-actions" style="margin-top:18px">
         <button class="btn-primary" id="featured-btn">
           VIEW DETAILS ↗
         </button>
@@ -607,6 +695,148 @@ try {
 const grid = document.getElementById("movie-grid");
 const searchInput = document.getElementById("search");
 
+// ---------- ARTWORK ----------
+
+let artUid = 0;
+
+function rng(seed) {
+  let s = seed * 9301 + 49297;
+  return function () {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+}
+
+function artSVG(m) {
+  const R = rng(m.id * 7 + 3);
+  const uid = "a" + m.id + "_" + (artUid++);
+  const acc = m.accent;
+  let s = '<svg viewBox="0 0 200 300" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">';
+
+  s += '<defs>' +
+    '<linearGradient id="bg' + uid + '" x1="0" y1="0" x2="0.5" y2="1">' +
+    '<stop offset="0" stop-color="' + m.c1 + '"/>' +
+    '<stop offset="1" stop-color="' + m.c2 + '"/></linearGradient>' +
+    '<radialGradient id="gl' + uid + '">' +
+    '<stop offset="0" stop-color="' + acc + '" stop-opacity="0.95"/>' +
+    '<stop offset="1" stop-color="' + acc + '" stop-opacity="0"/></radialGradient>' +
+    '<radialGradient id="pl' + uid + '" cx="0.35" cy="0.3" r="0.8">' +
+    '<stop offset="0" stop-color="' + acc + '"/>' +
+    '<stop offset="1" stop-color="' + m.c1 + '"/></radialGradient>' +
+    '</defs>';
+
+  s += '<rect width="200" height="300" fill="url(#bg' + uid + ')"/>';
+
+  for (let i = 0; i < 60; i++) {
+    s += '<circle cx="' + (R() * 200).toFixed(1) + '" cy="' + (R() * 200).toFixed(1) +
+      '" r="' + (R() * 1.1 + 0.3).toFixed(2) + '" fill="#fff" opacity="' + (0.25 + R() * 0.6).toFixed(2) + '"/>';
+  }
+
+  if (m.art === "skyline") {
+    s += '<circle cx="135" cy="100" r="64" fill="url(#gl' + uid + ')" opacity="0.7"/>';
+    s += '<circle cx="135" cy="100" r="26" fill="' + acc + '" opacity="0.9"/>';
+
+    [0.45, 1].forEach(function (layer) {
+      for (let x = -5; x < 200; ) {
+        const w = 12 + R() * 20;
+        const h = (layer === 1 ? 90 : 70) + R() * (layer === 1 ? 120 : 90);
+        s += '<rect x="' + x.toFixed(1) + '" y="' + (300 - h).toFixed(1) + '" width="' + w.toFixed(1) +
+          '" height="' + h.toFixed(1) + '" fill="#050a18" opacity="' + layer + '"/>';
+
+        if (layer === 1) {
+          for (let k = 0; k < 9; k++) {
+            if (R() > 0.45) {
+              s += '<rect x="' + (x + 3 + R() * (w - 8)).toFixed(1) + '" y="' + (300 - h + 6 + R() * (h - 14)).toFixed(1) +
+                '" width="2" height="2.5" fill="' + acc + '" opacity="' + (0.5 + R() * 0.5).toFixed(2) + '"/>';
+            }
+          }
+        }
+        x += w + 1 + R() * 3;
+      }
+    });
+  }
+
+  if (m.art === "matrix") {
+    for (let x = 3; x < 200; x += 8) {
+      const len = 40 + R() * 180;
+      const y0 = R() * 80 - 40;
+      s += '<rect x="' + x + '" y="' + y0.toFixed(1) + '" width="3" height="' + len.toFixed(1) +
+        '" fill="' + acc + '" opacity="' + (0.15 + R() * 0.45).toFixed(2) + '"/>';
+      s += '<rect x="' + x + '" y="' + (y0 + len).toFixed(1) + '" width="3" height="5" fill="#d1fae5" opacity="0.95"/>';
+    }
+    s += '<circle cx="100" cy="140" r="80" fill="url(#gl' + uid + ')" opacity="0.25"/>';
+  }
+
+  if (m.art === "desert") {
+    s += '<circle cx="100" cy="130" r="76" fill="url(#gl' + uid + ')" opacity="0.7"/>';
+    s += '<circle cx="100" cy="130" r="36" fill="' + acc + '"/>';
+    s += '<path d="M0 195 Q60 150 120 190 T200 175 V300 H0Z" fill="#78350f" opacity="0.8"/>';
+    s += '<path d="M0 230 Q70 190 130 225 T200 215 V300 H0Z" fill="#451a03" opacity="0.92"/>';
+    s += '<path d="M0 268 Q60 245 120 265 T200 258 V300 H0Z" fill="#1c0a02"/>';
+  }
+
+  if (m.art === "wormhole") {
+    for (let i = 9; i >= 0; i--) {
+      s += '<ellipse cx="100" cy="140" rx="' + (8 + i * 11) + '" ry="' + (14 + i * 15) +
+        '" fill="none" stroke="' + acc + '" stroke-width="1.6" opacity="' + (0.9 - i * 0.08).toFixed(2) + '"/>';
+    }
+    s += '<circle cx="100" cy="140" r="30" fill="url(#gl' + uid + ')"/>';
+    s += '<circle cx="100" cy="140" r="7" fill="#fff"/>';
+    s += '<polygon points="150,230 168,235 150,240" fill="#e2e8f0"/>';
+  }
+
+  if (m.art === "planet") {
+    s += '<circle cx="100" cy="150" r="66" fill="url(#pl' + uid + ')"/>';
+    s += '<circle cx="100" cy="150" r="66" fill="none" stroke="#fff" stroke-opacity="0.12"/>';
+    s += '<ellipse cx="100" cy="150" rx="112" ry="20" fill="none" stroke="' + acc + '" stroke-width="3.5" opacity="0.75" transform="rotate(-18 100 150)"/>';
+    s += '<circle cx="165" cy="58" r="12" fill="' + acc + '" opacity="0.8"/>';
+    s += '<circle cx="34" cy="238" r="6" fill="#e2e8f0" opacity="0.7"/>';
+  }
+
+  s += '<rect x="6" y="6" width="188" height="288" fill="none" stroke="' + acc + '" stroke-opacity="0.35"/>';
+  s += '</svg>';
+  return s;
+}
+
+// Builds a poster-style thumbnail: real poster if movie.image is set, else artwork.
+function makeThumb(movie) {
+  const thumb = document.createElement("div");
+  thumb.className = "card-thumb";
+
+  const showArt = function () {
+    thumb.insertAdjacentHTML("afterbegin", artSVG(movie));
+  };
+
+  if (movie.image) {
+    const img = document.createElement("img");
+    img.alt = movie.title;
+    img.loading = "lazy";
+    img.referrerPolicy = "no-referrer";
+    img.addEventListener("error", function () {
+      img.remove();
+      showArt();
+    });
+    img.src = movie.image;
+    thumb.appendChild(img);
+  } else {
+    showArt();
+  }
+
+  const top = document.createElement("span");
+  top.className = "thumb-genre";
+  top.textContent = movie.genre.toUpperCase() + " • " + movie.year;
+
+  const label = document.createElement("span");
+  label.className = "thumb-title";
+  label.textContent = movie.title.toUpperCase();
+
+  thumb.append(top, label);
+
+  return thumb;
+}
+
+// ---------- QUEUE / RENDER ----------
+
 function saveQueue() {
   localStorage.setItem(
     "kenshinQueue",
@@ -646,10 +876,7 @@ function renderMovies() {
     const card = document.createElement("article");
     card.className = "card";
 
-    const thumb = document.createElement("div");
-    thumb.className = "card-thumb";
-    thumb.style.background = movie.theme;
-    thumb.textContent = movie.title.toUpperCase();
+    const thumb = makeThumb(movie);
 
     const genre = document.createElement("div");
     genre.className = "tag";
@@ -721,14 +948,13 @@ function showDetails(id) {
 
   content.innerHTML = "";
 
-  const thumb = document.createElement("div");
-  thumb.className = "card-thumb";
-  thumb.style.height = "190px";
-  thumb.style.background = movie.theme;
-  thumb.textContent = movie.title.toUpperCase();
+  const thumb = makeThumb(movie);
+  thumb.style.maxWidth = "260px";
+  thumb.style.margin = "0 auto";
 
   const genre = document.createElement("div");
   genre.className = "tag";
+  genre.style.marginTop = "14px";
   genre.textContent = movie.genre + " • " + movie.year;
 
   const description = document.createElement("p");
@@ -946,6 +1172,26 @@ async function checkServer() {
 
 // INITIALIZATION
 
+(function initFeatured() {
+  const featured = movies.find(m => m.id === 4);
+  const box = document.getElementById("featured-art");
+  if (!featured || !box) return;
+
+  if (featured.image) {
+    const img = document.createElement("img");
+    img.alt = featured.title;
+    img.referrerPolicy = "no-referrer";
+    img.addEventListener("error", function () {
+      img.remove();
+      box.innerHTML = artSVG(featured);
+    });
+    img.src = featured.image;
+    box.appendChild(img);
+  } else {
+    box.innerHTML = artSVG(featured);
+  }
+})();
+
 renderMovies();
 updateQueueCount();
 checkServer();
@@ -984,7 +1230,7 @@ const server = http.createServer((req, res) => {
     return res.end(html);
   }
 
-  
+
   res.writeHead(404, {
     "Content-Type": "text/plain; charset=utf-8"
   });

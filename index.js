@@ -961,7 +961,6 @@ setInterval(() => {
 
 const server = http.createServer((req, res) => {
 
-  // SERVER HEALTH ENDPOINT
   if (req.url === "/health") {
     res.writeHead(200, {
       "Content-Type": "application/json; charset=utf-8"
@@ -976,7 +975,6 @@ const server = http.createServer((req, res) => {
     }));
   }
 
-  // MAIN WEBSITE
   if (req.url === "/" || req.url.startsWith("/?")) {
     res.writeHead(200, {
       "Content-Type": "text/html; charset=utf-8",
@@ -986,7 +984,7 @@ const server = http.createServer((req, res) => {
     return res.end(html);
   }
 
-  // 404 PAGE
+  
   res.writeHead(404, {
     "Content-Type": "text/plain; charset=utf-8"
   });
@@ -994,7 +992,6 @@ const server = http.createServer((req, res) => {
   res.end("404 - Page not found");
 });
 
-// START SERVER
 server.listen(PORT, "0.0.0.0", () => {
   console.log(
     `KENSHIN SCI-FI NEXUS is running on port ${PORT}`

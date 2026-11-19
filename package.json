@@ -2,7 +2,7 @@
   "name": "kenshin",
   "version": "1.0.0",
   "main": "index",
-  "script":{
+  "scripts": {
     "start": "node index.js"
   }
 }

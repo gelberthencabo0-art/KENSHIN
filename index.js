@@ -43,6 +43,12 @@ const html = `<!DOCTYPE html>
     justify-content: flex-end; padding: 22px; margin-bottom: 18px; transition: background .12s;
     background: linear-gradient(160deg, #312e81, #0b0618);
   }
+  .screen { position: relative; overflow: hidden; }
+  .screen > .art, .thumb { position: absolute; inset: 0; }
+  .screen > .art svg, .thumb svg { width: 100%; height: 100%; display: block; }
+  .screen > .art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(5,2,15,.9), rgba(5,2,15,0) 65%); }
+  .screen > *:not(.art) { position: relative; z-index: 2; }
+  .thumb { position: relative; aspect-ratio: 3 / 2; border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
   .screen h2 { font-size: 1.7rem; letter-spacing: 2px; margin-bottom: 6px; }
   .screen p { color: #ddd6fe; }
   .screen .meta { font-size: .8rem; letter-spacing: 3px; margin-bottom: 8px; }
@@ -74,6 +80,7 @@ const html = `<!DOCTYPE html>
 
 <section class="stage">
   <div class="screen" id="screen">
+    <div class="art" id="art"></div>
     <div class="meta" id="meta">PRESS START</div>
     <h2 id="title">???</h2>
     <p id="desc">Spin the roulette to get a random game.</p>
@@ -98,7 +105,76 @@ const html = `<!DOCTYPE html>
 
   const $ = (id) => document.getElementById(id);
 
+  // Generated artwork. If a game has an "image" URL it is used instead.
+  const kinds = { 1: "road", 2: "dungeon", 3: "space", 4: "blocks", 5: "burst", 6: "hills", 7: "maze", 8: "space" };
+  let uid = 0;
+
+  function rng(seed) {
+    let s = seed * 9301 + 49297;
+    return function () { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+  }
+
+  function artSVG(g) {
+    const R = rng(g.id * 7 + 3);
+    const id = "g" + g.id + "_" + (uid++);
+    const a = g.accent;
+    let s = '<svg viewBox="0 0 200 300" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">';
+    s += '<defs><linearGradient id="b' + id + '" x1="0" y1="0" x2="0.5" y2="1"><stop offset="0" stop-color="' + g.c1 + '"/><stop offset="1" stop-color="' + g.c2 + '"/></linearGradient>';
+    s += '<radialGradient id="o' + id + '"><stop offset="0" stop-color="' + a + '" stop-opacity="0.95"/><stop offset="1" stop-color="' + a + '" stop-opacity="0"/></radialGradient></defs>';
+    s += '<rect width="200" height="300" fill="url(#b' + id + ')"/>';
+    for (let i = 0; i < 40; i++) {
+      s += '<circle cx="' + (R() * 200).toFixed(1) + '" cy="' + (R() * 170).toFixed(1) + '" r="' + (R() + 0.3).toFixed(2) + '" fill="#fff" opacity="' + (0.25 + R() * 0.6).toFixed(2) + '"/>';
+    }
+    const k = kinds[g.id];
+    if (k === "road") {
+      s += '<circle cx="100" cy="120" r="60" fill="url(#o' + id + ')"/><circle cx="100" cy="120" r="30" fill="' + a + '"/>';
+      s += '<polygon points="0,300 200,300 120,150 80,150" fill="#0b0618"/>';
+      for (let y = 160; y < 300; y += 26) { const w = 1 + (y - 150) / 40; s += '<rect x="' + (100 - w / 2) + '" y="' + y + '" width="' + w + '" height="14" fill="' + a + '"/>'; }
+    } else if (k === "dungeon") {
+      for (let i = 0; i < 6; i++) { s += '<rect x="' + (10 + i * 30) + '" y="' + (150 + (i % 2) * 20) + '" width="24" height="150" fill="#052e16" opacity="0.9"/>'; }
+      s += '<path d="M70 300 V190 Q100 140 130 190 V300Z" fill="#000" opacity="0.8"/><circle cx="100" cy="215" r="10" fill="' + a + '"/>';
+    } else if (k === "space") {
+      s += '<circle cx="150" cy="70" r="30" fill="url(#o' + id + ')"/>';
+      for (let i = 0; i < 5; i++) { s += '<ellipse cx="' + (20 + R() * 160) + '" cy="' + (120 + R() * 100) + '" rx="' + (8 + R() * 12) + '" ry="' + (6 + R() * 8) + '" fill="#334155" stroke="' + a + '" stroke-opacity="0.6"/>'; }
+      s += '<polygon points="100,230 88,265 100,258 112,265" fill="' + a + '"/>';
+    } else if (k === "blocks") {
+      const cols = [a, "#fb7185", "#a78bfa", "#34d399"];
+      for (let r = 0; r < 8; r++) for (let c = 0; c < 5; c++) {
+        if (R() > 0.35) s += '<rect x="' + (25 + c * 30) + '" y="' + (120 + r * 22) + '" width="26" height="18" rx="3" fill="' + cols[Math.floor(R() * 4)] + '" opacity="0.9"/>';
+      }
+    } else if (k === "burst") {
+      for (let i = 0; i < 24; i++) { const ang = i / 24 * Math.PI * 2; s += '<line x1="100" y1="140" x2="' + (100 + Math.cos(ang) * 150).toFixed(1) + '" y2="' + (140 + Math.sin(ang) * 150).toFixed(1) + '" stroke="' + a + '" stroke-width="3" opacity="0.35"/>'; }
+      s += '<circle cx="100" cy="140" r="34" fill="' + a + '"/><circle cx="100" cy="140" r="16" fill="#fff"/>';
+    } else if (k === "hills") {
+      s += '<circle cx="150" cy="80" r="26" fill="' + a + '"/>';
+      s += '<path d="M0 220 Q50 150 100 210 T200 190 V300 H0Z" fill="#451a03"/><path d="M0 260 Q60 220 120 255 T200 240 V300 H0Z" fill="#1c0a02"/>';
+      s += '<rect x="60" y="205" width="14" height="18" fill="' + a + '"/>';
+    } else if (k === "maze") {
+      for (let i = 0; i < 6; i++) { s += '<rect x="' + (15 + i * 5) + '" y="' + (110 + i * 5) + '" width="' + (170 - i * 10) + '" height="' + (130 - i * 10) + '" fill="none" stroke="#3b82f6" stroke-width="3" rx="8" opacity="' + (0.9 - i * 0.12).toFixed(2) + '"/>'; }
+      s += '<path d="M100 175 L130 160 A30 30 0 1 1 130 190Z" fill="' + a + '"/>';
+    }
+    s += '<rect x="6" y="6" width="188" height="288" fill="none" stroke="' + a + '" stroke-opacity="0.35"/></svg>';
+    return s;
+  }
+
+  function artNode(g) {
+    if (g.image) {
+      const img = document.createElement("img");
+      img.src = g.image;
+      img.alt = g.title;
+      img.style.cssText = "width:100%;height:100%;object-fit:cover";
+      img.addEventListener("error", function () { img.parentNode.innerHTML = artSVG(g); });
+      return img;
+    }
+    const d = document.createElement("div");
+    d.style.cssText = "width:100%;height:100%";
+    d.innerHTML = artSVG(g);
+    return d;
+  }
+
   function show(g) {
+    $("art").innerHTML = "";
+    $("art").appendChild(artNode(g));
     $("screen").style.background = "linear-gradient(160deg," + g.c1 + "," + g.c2 + ")";
     $("screen").style.borderColor = g.accent;
     $("meta").textContent = g.genre.toUpperCase() + " • " + g.year;
@@ -162,7 +238,10 @@ const html = `<!DOCTYPE html>
       h3.textContent = g.title;
       const p = document.createElement("p");
       p.textContent = g.description;
-      card.append(small, h3, p);
+      const thumb = document.createElement("div");
+      thumb.className = "thumb";
+      thumb.appendChild(artNode(g));
+      card.append(thumb, small, h3, p);
       $("grid").appendChild(card);
     });
   }
@@ -182,6 +261,7 @@ const html = `<!DOCTYPE html>
     renderHistory();
   });
 
+  show(games[0]);
   renderFilters();
   renderGrid();
   renderHistory();
